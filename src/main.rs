@@ -5,13 +5,13 @@ use std::{fmt::Write, thread, time::Duration};
 use reqwest::Error;
 
 struct PokemonProduct {
-    url: Option<String>,
-    image: Option<String>,
-    name: Option<String>,
-    price: Option<String>,
+    url: String,
+    image: String,
+    name: String,
+    price: String,
 }
 
-fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) {
+fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) -> Result<(), Error>{
     // pagination page to start from
     let first_page = "https://scrapeme.live/shop/page/1/";
 
@@ -60,20 +60,20 @@ fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) {
                 .select(&scraper::Selector::parse("a").unwrap())
                 .next()
                 .and_then(|a| a.value().attr("href"))
-                .map(str::to_owned);
+                .map(str::to_owned).expect("href not found");
             let image = html_product
                 .select(&scraper::Selector::parse("img").unwrap())
                 .next()
                 .and_then(|img| img.value().attr("src"))
-                .map(str::to_owned);
+                .map(str::to_owned).expect("src not found");
             let name = html_product
                 .select(&scraper::Selector::parse("h2").unwrap())
                 .next()
-                .map(|h2| h2.text().collect::<String>());
+                .map(|h2| h2.text().collect::<String>()).expect("h2 not found");
             let price = html_product
                 .select(&scraper::Selector::parse(".price").unwrap())
                 .next()
-                .map(|price| price.text().collect::<String>());
+                .map(|price| price.text().collect::<String>()).expect("price not found");
 
             // instanciate a new Pokemon product
             // with the scraped data and add it to the list
@@ -116,6 +116,7 @@ fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) {
     }
 
     bar.finish_with_message("done");
+    Ok(())
 }
 
 // Do a request for the given URL, with a minimum time between requests
@@ -152,10 +153,10 @@ fn export_csv(pokemon_products: &Vec<PokemonProduct>) {
         thread::sleep(Duration::from_millis(5));
         bar.inc(1);
 
-        let url = product.url.clone().unwrap();
-        let image = product.image.clone().unwrap();
-        let name = product.name.clone().unwrap();
-        let price = product.price.clone().unwrap();
+        let url = product.url.clone();
+        let image = product.image.clone();
+        let name = product.name.clone();
+        let price = product.price.clone();
         writer.write_record(&[url, image, name, price]).unwrap();
     }
 
@@ -183,7 +184,7 @@ fn main() {
 
     let mut pokemon_products: Vec<PokemonProduct> = Vec::new();
 
-    get_pokemon_product_from_web(&mut pokemon_products);
+    let _ = get_pokemon_product_from_web(&mut pokemon_products);
 
     export_csv(&pokemon_products);
 
