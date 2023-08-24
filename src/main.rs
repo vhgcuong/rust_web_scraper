@@ -11,7 +11,9 @@ struct PokemonProduct {
     price: String,
 }
 
-fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) -> Result<(), Error>{
+fn get_pokemon_product_from_web() -> Result<Vec<PokemonProduct>, Error>{
+    let mut pokemon_products: Vec<PokemonProduct> = vec![];
+
     // pagination page to start from
     let first_page = "https://scrapeme.live/shop/page/1/";
 
@@ -32,8 +34,6 @@ fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) -> R
         .progress_chars("#>-"));
 
     while !pages_to_scrape.is_empty() && i <= max_iterations {
-        //
-        thread::sleep(Duration::from_millis(5));
         bar.inc(1);
 
         // get the first element from the queue
@@ -116,7 +116,7 @@ fn get_pokemon_product_from_web(pokemon_products: &mut Vec<PokemonProduct>) -> R
     }
 
     bar.finish_with_message("done");
-    Ok(())
+    Ok(pokemon_products)
 }
 
 // Do a request for the given URL, with a minimum time between requests
@@ -181,12 +181,14 @@ fn screenshot_data() {
 }
 
 fn main() {
-
-    let mut pokemon_products: Vec<PokemonProduct> = Vec::new();
-
-    let _ = get_pokemon_product_from_web(&mut pokemon_products);
-
-    export_csv(&pokemon_products);
+    match get_pokemon_product_from_web() {
+        Ok(pokemon_products) => {
+            export_csv(&pokemon_products);
+        },
+        Err(e) => {
+           println!("Error: {}", e)
+        }
+    }
 
     // screenshot_data();
 }
